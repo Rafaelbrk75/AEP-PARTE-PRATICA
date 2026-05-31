@@ -1,4 +1,14 @@
 package br.edu.unicesumar.aep_parte2.domain.dto;
 
-public class HistoricoStatusResponse {
+import br.edu.unicesumar.aep_parte2.domain.enums.StatusSolicitacao;
+
+import java.time.LocalDateTime;
+
+public record HistoricoStatusResponse(
+        StatusSolicitacao statusAnterior,
+        StatusSolicitacao statusNovo,
+        String observacao,
+        LocalDateTime dataMovimentacao,
+        String nomeAtendente
+) {
 }
