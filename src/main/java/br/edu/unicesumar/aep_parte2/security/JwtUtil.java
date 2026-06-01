@@ -3,7 +3,7 @@ package br.edu.unicesumar.aep_parte2.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import lombok.Value;
+import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -15,10 +15,10 @@ import java.util.Date;
 @Slf4j
 @Component
 public class JwtUtil {
-    @Value("${jwt.secret}")
+    @Value("${api.security.jwt.secret}")
     private String secret;
 
-    @Value("${jwt.expiration}")
+    @Value("${api.security.jwt.expiration}")
     private Long expiration;
 
     private SecretKey getSecretKey() {

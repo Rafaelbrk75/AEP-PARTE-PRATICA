@@ -4,7 +4,7 @@ import br.edu.unicesumar.aep_parte2.domain.dto.LoginRequest;
 import br.edu.unicesumar.aep_parte2.domain.dto.LoginResponse;
 import br.edu.unicesumar.aep_parte2.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
-import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
