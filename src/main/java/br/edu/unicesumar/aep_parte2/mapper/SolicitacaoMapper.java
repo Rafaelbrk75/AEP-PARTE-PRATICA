@@ -8,7 +8,7 @@ import org.mapstruct.Mapping;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = HistoricoStatusMapper.class)
 public interface SolicitacaoMapper {
 
     @Mapping(target = "id", ignore = true)
@@ -16,6 +16,7 @@ public interface SolicitacaoMapper {
     @Mapping(target = "dataCriacao", ignore = true)
     @Mapping(target = "atrasado", ignore = true)
     @Mapping(target = "solicitante", ignore = true)
+    @Mapping(target = "atendenteResponsavel", ignore = true)
     @Mapping(target = "historico", ignore = true)
     @Mapping(target = "statusAtual", ignore = true)
     SolicitacaoModel toEntity(SolicitacaoRequest request);
@@ -23,6 +24,7 @@ public interface SolicitacaoMapper {
     // Entity → Response
     // campos com nomes diferentes precisam de @Mapping explícito
     @Mapping(source = "solicitante.nome", target = "nomeSolicitante")
+    @Mapping(source = "atendenteResponsavel.nome", target = "nomeAtendenteResponsavel")
     SolicitacaoResponse toResponse(SolicitacaoModel model);
 
     List<SolicitacaoResponse> toResponseList(List<SolicitacaoModel> models);

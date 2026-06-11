@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface AtendenteRepository extends JpaRepository<AtendenteModel, Long> {
     Optional<AtendenteModel> findByMatricula(String matricula);
+
+    Optional<AtendenteModel> findByEmail(String email);
 }

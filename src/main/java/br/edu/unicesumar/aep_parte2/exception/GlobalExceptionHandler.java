@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -39,10 +40,10 @@ public class GlobalExceptionHandler {
             TransicaoStatusInvalidaException ex,
             HttpServletRequest request) {
 
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 new ErroResponse(
                         LocalDateTime.now(),
-                        HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                        HttpStatus.CONFLICT.value(),
                         "Transição inválida",
                         ex.getMessage(),
                         request.getRequestURI()
@@ -51,6 +52,38 @@ public class GlobalExceptionHandler {
     }
 
     // 400 — erros de validação Bean Validation (@NotBlank, @NotNull...)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErroResponse> handleArgumentoInvalido(
+            IllegalArgumentException ex,
+            HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                new ErroResponse(
+                        LocalDateTime.now(),
+                        HttpStatus.BAD_REQUEST.value(),
+                        "Dados invalidos",
+                        ex.getMessage(),
+                        request.getRequestURI()
+                )
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErroResponse> handleTipoParametroInvalido(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                new ErroResponse(
+                        LocalDateTime.now(),
+                        HttpStatus.BAD_REQUEST.value(),
+                        "Dados invalidos",
+                        "Parametro invalido: " + ex.getName(),
+                        request.getRequestURI()
+                )
+        );
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErroResponse> handleValidacao(
             MethodArgumentNotValidException ex,

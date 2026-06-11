@@ -8,6 +8,7 @@ public record HistoricoStatusResponse(
         StatusSolicitacao statusAnterior,
         StatusSolicitacao statusNovo,
         String observacao,
+        String tipoAcao,
         LocalDateTime dataMovimentacao,
         String nomeAtendente
 ) {

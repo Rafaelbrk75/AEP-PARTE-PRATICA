@@ -54,6 +54,10 @@ public class SolicitacaoModel {
     @JoinColumn(name = "cidadao_id")
     private CidadaoModel solicitante;
 
+    @ManyToOne
+    @JoinColumn(name = "atendente_responsavel_id")
+    private AtendenteModel atendenteResponsavel;
+
     @OneToMany(mappedBy = "solicitacao", cascade = CascadeType.ALL)
     private List<HistoricoStatusModel> historico;
 }

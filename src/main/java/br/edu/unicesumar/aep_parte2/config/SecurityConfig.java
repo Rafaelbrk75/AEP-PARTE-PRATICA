@@ -5,6 +5,7 @@ import br.edu.unicesumar.aep_parte2.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -31,31 +32,33 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // desabilita CSRF — não necessário em APIs REST com JWT
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // define as regras de acesso por endpoint
+                // Libera os frames — necessário para o H2 console funcionar
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.sameOrigin())
+                )
+
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/solicitacoes/protocolo/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/solicitacoes/categoria/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/solicitacoes/bairro").permitAll()
                         .requestMatchers(
-                                "/api/auth/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/h2-console/**"
                         ).permitAll()
-                        .requestMatchers("/api/atendente/**")
-                        .hasAuthority("ROLE_ATENDENTE")
+                        .requestMatchers("/api/cidadao/**").hasAuthority("ROLE_CIDADAO")
+                        .requestMatchers("/api/atendente/**").hasAuthority("ROLE_ATENDENTE")
                         .anyRequest().authenticated()
                 )
 
-                // sem sessão — cada request precisa do token
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // registra o provider de autenticação
                 .authenticationProvider(authenticationProvider())
-
-                // registra o filtro JWT antes do filtro padrão do Spring
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -66,6 +69,7 @@ public class SecurityConfig {
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
+
 
     @Bean
     public AuthenticationManager authenticationManager(

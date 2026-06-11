@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record SolicitacaoResponse(
+        Long id,
         String protocolo,
         String titulo,
         String descricao,
@@ -19,6 +20,7 @@ public record SolicitacaoResponse(
         LocalDateTime dataCriacao,
         Boolean atrasado,
         String nomeSolicitante,
+        String nomeAtendenteResponsavel,
         List<HistoricoStatusResponse> historico
 ) {
 }

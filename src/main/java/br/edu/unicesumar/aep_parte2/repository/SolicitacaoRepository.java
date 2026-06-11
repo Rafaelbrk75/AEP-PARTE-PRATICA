@@ -4,11 +4,12 @@ import br.edu.unicesumar.aep_parte2.domain.entity.SolicitacaoModel;
 import br.edu.unicesumar.aep_parte2.domain.enums.Categoria;
 import br.edu.unicesumar.aep_parte2.domain.enums.StatusSolicitacao;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface SolicitacaoRepository extends JpaRepository<SolicitacaoModel, Long> {
+public interface SolicitacaoRepository extends JpaRepository<SolicitacaoModel, Long>, JpaSpecificationExecutor<SolicitacaoModel> {
     Optional<SolicitacaoModel> findByProtocolo(String protocolo);
 
     List<SolicitacaoModel> findByCategoria(Categoria categoria);

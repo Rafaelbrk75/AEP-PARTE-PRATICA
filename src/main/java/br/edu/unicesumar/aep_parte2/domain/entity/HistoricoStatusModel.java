@@ -38,6 +38,9 @@ public class HistoricoStatusModel {
     private String observacao;
 
     @Column(nullable = false)
+    private String tipoAcao = "ALTERACAO_STATUS";
+
+    @Column(nullable = false)
     private Boolean canceladoPorCidadao = false;
 
     @ManyToOne
