@@ -85,13 +85,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Banco H2 -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
         <!-- Banco PostgreSQL -->
         <dependency>
             <groupId>org.postgresql</groupId>
