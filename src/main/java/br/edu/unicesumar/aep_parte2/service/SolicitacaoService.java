@@ -16,6 +16,7 @@ import br.edu.unicesumar.aep_parte2.domain.entity.SolicitacaoModel;
 import br.edu.unicesumar.aep_parte2.domain.entity.Usuario;
 import br.edu.unicesumar.aep_parte2.domain.enums.Categoria;
 import br.edu.unicesumar.aep_parte2.domain.enums.Prioridade;
+import br.edu.unicesumar.aep_parte2.domain.enums.RoleUser;
 import br.edu.unicesumar.aep_parte2.domain.enums.StatusSolicitacao;
 import br.edu.unicesumar.aep_parte2.exception.SolicitacaoNaoEncontradaException;
 import br.edu.unicesumar.aep_parte2.exception.TransicaoStatusInvalidaException;
@@ -28,14 +29,26 @@ import br.edu.unicesumar.aep_parte2.repository.HistoricoStatusRepository;
 import br.edu.unicesumar.aep_parte2.repository.SolicitacaoRepository;
 import br.edu.unicesumar.aep_parte2.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -57,18 +70,41 @@ public class SolicitacaoService {
     private final SolicitacaoMapper solicitacaoMapper;
     private final ProtocoloService protocoloService;
 
+    @Value("${app.upload-dir:uploads/anexos}")
+    private String uploadDir;
+
     @Transactional
     public SolicitacaoResponse abrir(SolicitacaoRequest request, String emailSolicitante) {
         CidadaoModel cidadao = buscarCidadaoSolicitante(request, emailSolicitante);
+        LocalDateTime dataCriacao = LocalDateTime.now();
 
         SolicitacaoModel solicitacao = solicitacaoMapper.toEntity(request);
         solicitacao.setProtocolo(protocoloService.gerar());
         solicitacao.setStatusAtual(StatusSolicitacao.ABERTA);
-        solicitacao.setDataCriacao(LocalDateTime.now());
+        solicitacao.setDataCriacao(dataCriacao);
+        solicitacao.setPrazoLimite(dataCriacao.plusHours(request.getPrioridade().getPrazoHoras()));
         solicitacao.setAtrasado(false);
+        solicitacao.setAnonima(Boolean.TRUE.equals(request.getAnonima()));
+        solicitacao.setJustificativaAtraso(null);
         solicitacao.setSolicitante(cidadao);
 
         return solicitacaoMapper.toResponse(solicitacaoRepository.save(solicitacao));
+    }
+
+    @Transactional
+    public SolicitacaoResponse abrirComAnexo(
+            SolicitacaoRequest request,
+            String emailSolicitante,
+            MultipartFile arquivo) {
+
+        SolicitacaoResponse response = abrir(request, emailSolicitante);
+
+        if (arquivo != null && !arquivo.isEmpty()) {
+            anexarArquivo(response.id(), arquivo, emailSolicitante);
+            return buscarPorId(response.id());
+        }
+
+        return response;
     }
 
     public SolicitacaoResponse buscarPorProtocolo(String protocolo) {
@@ -225,15 +261,130 @@ public class SolicitacaoService {
         anexo.setDataEnvio(LocalDateTime.now());
 
         AnexoModel salvo = anexoRepository.save(anexo);
+        return toAnexoResponse(salvo, solicitacao, autor);
+    }
+
+    @Transactional
+    public AnexoResponse anexarArquivo(Long id, MultipartFile arquivo, String emailAutor) {
+        if (arquivo == null || arquivo.isEmpty()) {
+            throw new IllegalArgumentException("Arquivo e obrigatorio");
+        }
+
+        String tipoConteudo = arquivo.getContentType();
+        if (tipoConteudo == null || !tipoConteudo.toLowerCase().startsWith("image/")) {
+            throw new IllegalArgumentException("Envie apenas arquivos de imagem");
+        }
+
+        SolicitacaoModel solicitacao = buscarSolicitacao(id);
+        Usuario autor = buscarUsuario(emailAutor);
+        String nomeOriginal = normalizarNomeArquivo(arquivo.getOriginalFilename());
+        String nomeArmazenado = UUID.randomUUID() + extensao(nomeOriginal);
+
+        Path destino = salvarArquivo(arquivo, nomeArmazenado);
+
+        AnexoModel anexo = new AnexoModel();
+        anexo.setSolicitacao(solicitacao);
+        anexo.setAutor(autor);
+        anexo.setNomeArquivo(nomeOriginal);
+        anexo.setUrl(destino.toString());
+        anexo.setTipoConteudo(tipoConteudo);
+        anexo.setDataEnvio(LocalDateTime.now());
+
+        AnexoModel salvo = anexoRepository.save(anexo);
+        return toAnexoResponse(salvo, solicitacao, autor);
+    }
+
+    @Transactional(readOnly = true)
+    public AnexoArquivo carregarArquivoAnexo(Long id, String emailUsuario) {
+        AnexoModel anexo = anexoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Anexo nao encontrado: " + id));
+        validarAcessoAoAnexo(anexo, buscarUsuario(emailUsuario));
+
+        try {
+            Path arquivo = Paths.get(anexo.getUrl()).normalize();
+            Resource resource = new UrlResource(arquivo.toUri());
+
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new RuntimeException("Arquivo do anexo nao encontrado");
+            }
+
+            return new AnexoArquivo(resource, anexo.getNomeArquivo(), anexo.getTipoConteudo());
+        } catch (MalformedURLException ex) {
+            throw new RuntimeException("Arquivo do anexo invalido", ex);
+        }
+    }
+
+    private Path salvarArquivo(MultipartFile arquivo, String nomeArmazenado) {
+        try {
+            Path pasta = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Files.createDirectories(pasta);
+
+            Path destino = pasta.resolve(nomeArmazenado).normalize();
+            if (!destino.startsWith(pasta)) {
+                throw new IllegalArgumentException("Nome de arquivo invalido");
+            }
+
+            Files.copy(arquivo.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
+            return destino;
+        } catch (IOException ex) {
+            throw new RuntimeException("Nao foi possivel salvar o arquivo", ex);
+        }
+    }
+
+    private String normalizarNomeArquivo(String nomeOriginal) {
+        if (nomeOriginal == null || nomeOriginal.isBlank()) {
+            return "imagem";
+        }
+
+        String nome = Paths.get(nomeOriginal).getFileName().toString();
+        return nome.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+
+    private String extensao(String nomeArquivo) {
+        int index = nomeArquivo.lastIndexOf('.');
+        if (index < 0 || index == nomeArquivo.length() - 1) {
+            return "";
+        }
+        return nomeArquivo.substring(index);
+    }
+
+    private AnexoResponse toAnexoResponse(AnexoModel anexo, SolicitacaoModel solicitacao, Usuario autor) {
         return new AnexoResponse(
-                salvo.getId(),
+                anexo.getId(),
                 solicitacao.getId(),
-                salvo.getNomeArquivo(),
-                salvo.getUrl(),
-                salvo.getTipoConteudo(),
+                anexo.getNomeArquivo(),
+                resolverUrlAnexo(anexo),
+                anexo.getTipoConteudo(),
                 autor.getNome(),
-                salvo.getDataEnvio()
+                anexo.getDataEnvio()
         );
+    }
+
+    private String resolverUrlAnexo(AnexoModel anexo) {
+        String url = anexo.getUrl();
+        if (url == null || url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/")) {
+            return url;
+        }
+        return "/api/anexos/" + anexo.getId() + "/arquivo";
+    }
+
+    public record AnexoArquivo(Resource resource, String nomeArquivo, String tipoConteudo) {
+    }
+
+    private void validarAcessoAoAnexo(AnexoModel anexo, Usuario usuario) {
+        if (usuario.getRole() == RoleUser.ROLE_ATENDENTE) {
+            return;
+        }
+
+        SolicitacaoModel solicitacao = anexo.getSolicitacao();
+        if (usuario.getRole() == RoleUser.ROLE_CIDADAO
+                && solicitacao != null
+                && solicitacao.getSolicitante() != null
+                && Objects.equals(solicitacao.getSolicitante().getId(), usuario.getId())) {
+            return;
+        }
+
+        throw new SolicitacaoNaoEncontradaException("Anexo nao encontrado: " + anexo.getId());
     }
 
     private CidadaoModel buscarCidadaoSolicitante(SolicitacaoRequest request, String emailSolicitante) {

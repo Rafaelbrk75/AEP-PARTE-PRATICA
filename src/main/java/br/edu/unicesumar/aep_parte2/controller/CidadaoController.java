@@ -25,7 +25,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -54,6 +56,24 @@ public class CidadaoController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(cidadaoService.abrirSolicitacao(request, userDetails.getUsername()));
+    }
+
+    @Operation(summary = "Abre uma nova solicitacao com imagem anexada")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Solicitacao criada"),
+            @ApiResponse(responseCode = "400", description = "Dados invalidos"),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou invalido"),
+            @ApiResponse(responseCode = "403", description = "Usuario sem permissao")
+    })
+    @PostMapping(value = "/solicitacoes", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<SolicitacaoResponse> abrirSolicitacaoComAnexo(
+            @RequestPart("solicitacao") @Valid SolicitacaoRequest request,
+            @RequestPart(value = "arquivo", required = false) MultipartFile arquivo,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(cidadaoService.abrirSolicitacaoComAnexo(request, arquivo, userDetails.getUsername()));
     }
 
     @Operation(summary = "Lista minhas solicitacoes")
@@ -120,5 +140,24 @@ public class CidadaoController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(cidadaoService.anexarMinhaSolicitacao(id, request, userDetails.getUsername()));
+    }
+
+    @Operation(summary = "Envia imagem para uma solicitacao minha")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Anexo criado"),
+            @ApiResponse(responseCode = "400", description = "Arquivo invalido"),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou invalido"),
+            @ApiResponse(responseCode = "403", description = "Usuario sem permissao"),
+            @ApiResponse(responseCode = "404", description = "Solicitacao nao encontrada")
+    })
+    @PostMapping(value = "/solicitacoes/{id}/anexos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<AnexoResponse> anexarArquivoMinhaSolicitacao(
+            @PathVariable Long id,
+            @RequestPart("arquivo") MultipartFile arquivo,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(cidadaoService.anexarArquivoMinhaSolicitacao(id, arquivo, userDetails.getUsername()));
     }
 }

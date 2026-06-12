@@ -19,11 +19,9 @@ public class SLAService {
 
     private final SolicitacaoRepository solicitacaoRepository;
 
-    // Roda automaticamente todo hora
     @Scheduled(cron = "0 0 * * * *")
     @Transactional
     public void verificarAtrasos() {
-        // Busca somente solicitações que ainda estão em aberto
         List<SolicitacaoModel> abertas = solicitacaoRepository
                 .findByStatusAtualNotIn(List.of(
                         StatusSolicitacao.ENCERRADA,
@@ -32,16 +30,28 @@ public class SLAService {
                 ));
 
         for (SolicitacaoModel solicitacao : abertas) {
-            // Calcula o prazo limite baseado na prioridade
-            LocalDateTime prazoLimite = solicitacao.getDataCriacao()
-                    .plusHours(solicitacao.getPrioridade().getPrazoHoras());
+            LocalDateTime prazoLimite = prazoLimite(solicitacao);
 
-            // Se passou do prazo e ainda não estava marcada como atrasada
             if (LocalDateTime.now().isAfter(prazoLimite) && !solicitacao.getAtrasado()) {
                 solicitacao.setAtrasado(true);
+                solicitacao.setJustificativaAtraso(
+                        "Prazo alvo excedido para prioridade " + solicitacao.getPrioridade()
+                                + ". Limite previsto: " + prazoLimite
+                );
                 solicitacaoRepository.save(solicitacao);
-                log.warn("Solicitação {} marcada como atrasada.", solicitacao.getProtocolo());
+                log.warn("Solicitacao {} marcada como atrasada.", solicitacao.getProtocolo());
             }
         }
+    }
+
+    private LocalDateTime prazoLimite(SolicitacaoModel solicitacao) {
+        if (solicitacao.getPrazoLimite() != null) {
+            return solicitacao.getPrazoLimite();
+        }
+
+        LocalDateTime prazoLimite = solicitacao.getDataCriacao()
+                .plusHours(solicitacao.getPrioridade().getPrazoHoras());
+        solicitacao.setPrazoLimite(prazoLimite);
+        return prazoLimite;
     }
 }

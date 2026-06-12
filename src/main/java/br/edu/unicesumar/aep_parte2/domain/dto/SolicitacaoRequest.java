@@ -24,5 +24,7 @@ public class SolicitacaoRequest {
     @NotNull(message = "Prioridade é obrigatória")
     private Prioridade prioridade;
 
+    private Boolean anonima = false;
+
     private String cpfSolicitante;
 }

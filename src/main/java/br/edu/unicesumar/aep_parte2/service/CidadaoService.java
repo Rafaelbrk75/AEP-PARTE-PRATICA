@@ -14,6 +14,7 @@ import br.edu.unicesumar.aep_parte2.repository.CidadaoRepository;
 import br.edu.unicesumar.aep_parte2.repository.SolicitacaoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Objects;
@@ -29,6 +30,14 @@ public class CidadaoService {
 
     public SolicitacaoResponse abrirSolicitacao(SolicitacaoRequest request, String emailCidadao) {
         return solicitacaoService.abrir(request, emailCidadao);
+    }
+
+    public SolicitacaoResponse abrirSolicitacaoComAnexo(
+            SolicitacaoRequest request,
+            MultipartFile arquivo,
+            String emailCidadao) {
+
+        return solicitacaoService.abrirComAnexo(request, emailCidadao, arquivo);
     }
 
     public List<SolicitacaoResponse> listarMinhasSolicitacoes(String emailCidadao) {
@@ -55,6 +64,15 @@ public class CidadaoService {
 
         buscarSolicitacaoDoCidadao(id, emailCidadao);
         return solicitacaoService.anexar(id, request, emailCidadao);
+    }
+
+    public AnexoResponse anexarArquivoMinhaSolicitacao(
+            Long id,
+            MultipartFile arquivo,
+            String emailCidadao) {
+
+        buscarSolicitacaoDoCidadao(id, emailCidadao);
+        return solicitacaoService.anexarArquivo(id, arquivo, emailCidadao);
     }
 
     private SolicitacaoModel buscarSolicitacaoDoCidadao(Long id, String emailCidadao) {

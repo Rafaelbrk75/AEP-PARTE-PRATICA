@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -50,6 +51,15 @@ public class SolicitacaoModel {
     @Column(nullable = false)
     private LocalDateTime dataCriacao;
 
+    @Column(nullable = false)
+    private Boolean anonima = false;
+
+    @Column(nullable = false)
+    private LocalDateTime prazoLimite;
+
+    @Column(length = 500)
+    private String justificativaAtraso;
+
     @ManyToOne
     @JoinColumn(name = "cidadao_id")
     private CidadaoModel solicitante;
@@ -59,5 +69,8 @@ public class SolicitacaoModel {
     private AtendenteModel atendenteResponsavel;
 
     @OneToMany(mappedBy = "solicitacao", cascade = CascadeType.ALL)
-    private List<HistoricoStatusModel> historico;
+    private List<HistoricoStatusModel> historico = new ArrayList<>();
+
+    @OneToMany(mappedBy = "solicitacao", cascade = CascadeType.ALL)
+    private List<AnexoModel> anexos = new ArrayList<>();
 }

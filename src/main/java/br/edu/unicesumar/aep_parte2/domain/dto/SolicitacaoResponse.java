@@ -19,8 +19,12 @@ public record SolicitacaoResponse(
         Prioridade prioridade,
         LocalDateTime dataCriacao,
         Boolean atrasado,
+        Boolean anonima,
+        LocalDateTime prazoLimite,
+        String justificativaAtraso,
         String nomeSolicitante,
         String nomeAtendenteResponsavel,
-        List<HistoricoStatusResponse> historico
+        List<HistoricoStatusResponse> historico,
+        List<AnexoResponse> anexos
 ) {
 }
