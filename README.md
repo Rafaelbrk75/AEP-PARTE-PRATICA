@@ -1,5 +1,7 @@
 # ObservaAcao API
 
+LINK DO REPO DO FRONT: https://github.com/Rafaelbrk75/Front-ObservaAcao
+
 API REST desenvolvida em Java com Spring Boot para abertura, acompanhamento e atendimento de solicitacoes urbanas. O sistema permite que cidadaos registrem problemas da cidade, acompanhem o status da solicitacao e adicionem comentarios ou imagens. Atendentes podem consultar a fila, assumir solicitacoes e atualizar o andamento.
 
 ## Tecnologias utilizadas
